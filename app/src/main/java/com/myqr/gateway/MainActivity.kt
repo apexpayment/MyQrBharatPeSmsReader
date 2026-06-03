@@ -35,12 +35,12 @@ class MainActivity : Activity() {
         root.addView(layout)
 
         val title = TextView(this).apply {
-            text = "MyQR BharatPe SMS Reader v21"
+            text = "MyQR BharatPe SMS Reader v22"
             textSize = 23f
             gravity = Gravity.CENTER_HORIZONTAL
         }
         val info = TextView(this).apply {
-            text = "Private merchant companion app. It forwards only BharatPe payment received SMS/RCS text. OTP/login/password messages are blocked locally. v21 supports direct 6-digit pairing code."
+            text = "Private merchant companion app. It forwards only BharatPe payment received SMS/RCS text. OTP/login/password messages are blocked locally. v22: first pair device, then test server, then it listens only to NEW BharatPe SMS/RCS. Old SMS inbox fetch is blocked for safety."
             textSize = 15f
             setPadding(0, 18, 0, 18)
         }
@@ -125,6 +125,11 @@ class MainActivity : Activity() {
             }
         }
 
+        val checkBtn = Button(this).apply {
+            text = "Check Device Connection on Server"
+            setOnClickListener { checkDeviceStatus() }
+        }
+
         val refreshBtn = Button(this).apply {
             text = "Refresh Last Server Response"
             setOnClickListener { showStatus() }
@@ -149,6 +154,7 @@ class MainActivity : Activity() {
         layout.addView(batteryBtn)
         layout.addView(label("3) Test"))
         layout.addView(testBtn)
+        layout.addView(checkBtn)
         layout.addView(refreshBtn)
         layout.addView(status)
 
@@ -212,6 +218,37 @@ class MainActivity : Activity() {
                 }
             } catch (e: Throwable) {
                 runOnUiThread { status.text = "Pairing error: ${e.message}" }
+            }
+        }.start()
+    }
+
+
+    private fun checkDeviceStatus() {
+        val smsUrl = smsUrlInput.text.toString().trim()
+        val token = tokenInput.text.toString().trim()
+        if (!smsUrl.startsWith("https://") || token.length <= 20) {
+            status.text = "Not ready: Pair first. Third box must become long device token, not 6-digit code."
+            return
+        }
+        val statusUrl = smsUrl.replace("/api/sms-push.php", "/api/device-status.php")
+        status.text = "Checking server device status..."
+        Thread {
+            try {
+                val conn = (URL(statusUrl).openConnection() as HttpURLConnection)
+                conn.requestMethod = "GET"
+                conn.setRequestProperty("x-device-token", token)
+                conn.connectTimeout = 15000
+                conn.readTimeout = 15000
+                val httpCode = conn.responseCode
+                val stream = if (httpCode in 200..299) conn.inputStream else conn.errorStream
+                val response = stream?.bufferedReader()?.use { it.readText() } ?: ""
+                conn.disconnect()
+                runOnUiThread { status.text = "Device status HTTP $httpCode:
+$response
+
+If status true, server is connected. Now only NEW BharatPe SMS/RCS will be forwarded." }
+            } catch (e: Throwable) {
+                runOnUiThread { status.text = "Device status error: ${e.message}" }
             }
         }.start()
     }
