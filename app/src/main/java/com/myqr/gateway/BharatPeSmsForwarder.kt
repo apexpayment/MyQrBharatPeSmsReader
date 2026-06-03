@@ -11,6 +11,15 @@ import java.net.URL
  * OTP/login/password messages are ignored locally and never posted.
  */
 object BharatPeSmsForwarder {
+    private const val PREF = "myqr_bharatpe_last"
+    private const val KEY_LAST = "last_response"
+
+    fun getLastServerResponse(context: Context): String =
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString(KEY_LAST, "") ?: ""
+
+    private fun saveLast(context: Context, value: String) {
+        context.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit().putString(KEY_LAST, value.take(2000)).apply()
+    }
 
     fun looksLikeBharatPePayment(sender: String, body: String): Boolean {
         val hay = (sender + " " + body).lowercase()
@@ -30,11 +39,17 @@ object BharatPeSmsForwarder {
     }
 
     fun postBharatPeSms(context: Context, sender: String, body: String, receivedAt: Long, sourceType: String) {
-        if (!looksLikeBharatPePayment(sender, body)) return
+        if (!looksLikeBharatPePayment(sender, body)) {
+            saveLast(context, "Ignored locally: not BharatPe payment SMS/RCS. Sender=$sender Body=${body.take(180)}")
+            return
+        }
 
         val smsPushUrl = ConfigStore.getSmsPushUrl(context)
         val deviceToken = ConfigStore.getDeviceToken(context)
-        if (!smsPushUrl.startsWith("https://") || deviceToken.isBlank()) return
+        if (!smsPushUrl.startsWith("https://") || deviceToken.isBlank() || deviceToken.length <= 20) {
+            saveLast(context, "Not sent: SMS URL or long device token missing. Do not paste only 6-digit pairing code; pair first.")
+            return
+        }
 
         Thread {
             try {
@@ -54,10 +69,11 @@ object BharatPeSmsForwarder {
                 OutputStreamWriter(conn.outputStream, Charsets.UTF_8).use { it.write(payload.toString()) }
                 val code = conn.responseCode
                 val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-                stream?.bufferedReader()?.use { it.readText() }
+                val response = stream?.bufferedReader()?.use { it.readText() } ?: ""
+                saveLast(context, "HTTP $code: $response")
                 conn.disconnect()
-            } catch (_: Throwable) {
-                // Private merchant app: failed events can be retried in a future version if needed.
+            } catch (e: Throwable) {
+                saveLast(context, "Send error: ${e.message}")
             }
         }.start()
     }
