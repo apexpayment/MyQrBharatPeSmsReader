@@ -1,4 +1,4 @@
-# MyQR BharatPe SMS Reader Android App
+# MyQR BharatPe SMS Reader Android App v22
 
 Private Android companion app for your own merchant phone.
 It reads only **new BharatPe payment received SMS/RCS notification text** and sends it to your Hostinger server.
@@ -88,8 +88,9 @@ If the app says **Not ready**, the third box still contains only the 6-digit cod
 
 The app does not read old SMS history. Send a new BharatPe payment SMS/RCS after enabling permissions.
 
-## v21 pairing fix
-This version accepts a 6-digit pairing code from the dashboard and stores the long device token automatically after pairing.
 
-APK download after GitHub Actions build:
-https://github.com/apexpayment/MyQrBharatPeSmsReader/releases/latest/download/MyQrBharatPeSmsReader-debug.apk
+## v22 important
+- Third box me 6 digit pairing code paste karo, then Pair Device button dabao.
+- Pair success ke baad third box long device token banega.
+- Check Device Connection button se server token test karo.
+- Old SMS history fetch nahi hota. Sirf new SMS/RCS listen hota hai.
