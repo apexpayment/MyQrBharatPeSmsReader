@@ -78,3 +78,18 @@ If amount missing, duplicate, late, or suspicious, server keeps it in manual rev
 This app does not read old SMS inbox history.
 It uses RECEIVE_SMS only for new incoming messages.
 It forwards only messages that contain BharatPe brand + payment received words + amount + QR/account context.
+
+
+## v21 important fix
+
+The third box can now accept the 6-digit pairing code. Tap **Pair Device Using 6-Digit Code** first. The app will call `/api/device-pair.php`, receive the long `device_token`, save it, and then SMS/RCS forwarding will work.
+
+If the app says **Not ready**, the third box still contains only the 6-digit code. Real push requires the long device token.
+
+The app does not read old SMS history. Send a new BharatPe payment SMS/RCS after enabling permissions.
+
+## v21 pairing fix
+This version accepts a 6-digit pairing code from the dashboard and stores the long device token automatically after pairing.
+
+APK download after GitHub Actions build:
+https://github.com/apexpayment/MyQrBharatPeSmsReader/releases/latest/download/MyQrBharatPeSmsReader-debug.apk
